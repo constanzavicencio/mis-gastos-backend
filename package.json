@@ -4,10 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only --esm src/index.ts",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "start:dev": "npm run dev",
     "build": "rimraf dist && tsc",
-    "start": "node --experimental-specifier-resolution=node dist/index.js",
+    "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev --name init",
     "docker:up": "docker-compose up -d",
@@ -21,7 +21,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "module",
+  
   "bugs": {
     "url": "https://github.com/constanzavicencio/mis-gastos-backend/issues"
   },
