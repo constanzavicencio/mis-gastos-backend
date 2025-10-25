@@ -7,8 +7,188 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum CategoryType {
+  EXPENSE
+  INCOME
+  INVENTORY
+  OTHER
+}
+
+enum ScheduleType {
+  FIXED_DATE
+  BUSINESS_DAY
+  DATE_RANGE
+  BUSINESS_DAY_RANGE
+}
+
+enum BudgetPeriod {
+  MONTHLY
+}
+
 model User {
   id        String   @id @default(uuid())
-  email     String   @unique
+  auth0Id   String   @unique
+  email     String?
+  name      String?
+  timezone  String?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  categories     Category[]
+  subcategories  Subcategory[]
+  expenses       Expense[]
+  budgets        Budget[]
+  incomeStreams  IncomeStream[]
+  subscriptions  Subscription[]
+  inventoryItems InventoryItem[]
+}
+
+model Category {
+  id        String       @id @default(uuid())
+  userId    String
+  name      String
+  type      CategoryType @default(EXPENSE)
+  color     String?
+  icon      String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subcategories Subcategory[]
+  expenses      Expense[]
+  budgets       Budget[]
+  subscriptions Subscription[]
+  inventory     InventoryItem[]
+}
+
+model Subcategory {
+  id         String   @id @default(uuid())
+  userId     String
+  categoryId String
+  name       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  expenses Expense[]
+  budgets  Budget[]
+  inventory InventoryItem[]
+}
+
+model Expense {
+  id            String    @id @default(uuid())
+  userId        String
+  categoryId    String?
+  subcategoryId String?
+  amount        Decimal   @db.Decimal(14, 2)
+  currency      String    @default("ARS")
+  description   String?
+  notes         String?
+  occurredAt    DateTime
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  subcategory Subcategory? @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
+}
+
+model Budget {
+  id            String       @id @default(uuid())
+  userId        String
+  categoryId    String?
+  subcategoryId String?
+  name          String
+  period        BudgetPeriod @default(MONTHLY)
+  amount        Decimal      @db.Decimal(14, 2)
+  currency      String       @default("ARS")
+  startDate     DateTime?
+  endDate       DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  subcategory Subcategory? @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
+}
+
+model IncomeStream {
+  id                     String       @id @default(uuid())
+  userId                 String
+  name                   String
+  amount                 Decimal      @db.Decimal(14, 2)
+  currency               String       @default("ARS")
+  scheduleType           ScheduleType
+  dayOfMonth             Int?
+  nthBusinessDay         Int?
+  monthDayRangeStart     Int?
+  monthDayRangeEnd       Int?
+  businessDayRangeStart  Int?
+  businessDayRangeEnd    Int?
+  activeMonths           Int[]        @default([])
+  notes                  String?
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Subscription {
+  id                     String       @id @default(uuid())
+  userId                 String
+  categoryId             String?
+  name                   String
+  amount                 Decimal      @db.Decimal(14, 2)
+  currency               String       @default("ARS")
+  scheduleType           ScheduleType
+  dayOfMonth             Int?
+  nthBusinessDay         Int?
+  monthDayRangeStart     Int?
+  monthDayRangeEnd       Int?
+  businessDayRangeStart  Int?
+  businessDayRangeEnd    Int?
+  activeMonths           Int[]        @default([])
+  notes                  String?
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+}
+
+model InventoryItem {
+  id                    String    @id @default(uuid())
+  userId                String
+  categoryId            String?
+  subcategoryId         String?
+  name                  String
+  unitName              String?
+  costPerPurchase       Decimal?  @db.Decimal(14, 2)
+  purchaseQuantity      Decimal?  @db.Decimal(14, 4)
+  consumptionPerDay     Decimal?  @db.Decimal(14, 4)
+  initialStockQuantity  Decimal?  @db.Decimal(14, 4)
+  initialStockDate      DateTime?
+  reminderAdvanceDays   Int       @default(7)
+  notes                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  subcategory Subcategory? @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
+  purchases   InventoryPurchase[]
+}
+
+model InventoryPurchase {
+  id               String   @id @default(uuid())
+  inventoryItemId  String
+  quantity         Decimal  @db.Decimal(14, 4)
+  cost             Decimal? @db.Decimal(14, 2)
+  purchasedAt      DateTime
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
 }
